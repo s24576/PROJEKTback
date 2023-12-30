@@ -3,6 +3,7 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const User = require('./models/User');
 const Item = require('./models/Item');
+const Opinion = require('./models/Opinion');
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const uri = "mongodb+srv://s24576:uzf8bk4qPaLvB1NJ@cluster.ac2qqok.mongodb.net/projekt?retryWrites=true&w=majority";
@@ -94,9 +95,35 @@ app.post('/api/admin/add/item', async (req, res) => {
     }
 });
 
+app.post('/api/add/opinion', async(req, res)=>{
+    const { itemId, author, comment, rating} = req.body;
+    try{
+        const newOpinion = new Opinion({ itemId, author, comment, rating});
+        await newOpinion.save();
+        res.status(200).json({ message: "Opinia zapisana pomyślnie"});
+    }
+    catch (error) {
+        console.log('Error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+})
 
+app.get('/api/get/opinions', async(req, res)=>{
+    const { itemId } = req.body;
+    try{
+        let opinions = await Opinion.find();
 
+        if(opinions.length===0){
+            res.status(400).json({message: 'Brak opinii'});
+        }
 
+        res.status(200).json({opinions: opinions});
+    }
+    catch (error) {
+        console.log('Error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+})
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
