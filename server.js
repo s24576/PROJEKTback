@@ -124,6 +124,33 @@ app.get('/api/get/opinions', async(req, res)=>{
         res.status(500).json({ message: 'Internal server error' });
     }
 })
+
+app.get('api/get/average', async (req, res) => {
+    const { itemId } = req.body;
+
+    try {
+        const average = await Opinion.aggregate([
+            { $match: { itemId: itemId } },
+            {
+                $group: {
+                    _id: null,
+                    averageRating: { $avg: '$rating' },
+                },
+            },
+        ]);
+
+        if (average.length === 0) {
+            res.status(400).json({ message: 'Brak opinii' });
+        } else {
+            res.status(200).json({ average: average[0].averageRating.toFixed(2) });
+        }
+    } catch (error) {
+        console.log('Error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
