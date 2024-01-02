@@ -108,47 +108,41 @@ app.post('/api/add/opinion', async(req, res)=>{
     }
 })
 
-app.get('/api/get/opinions', async(req, res)=>{
-    const { itemId } = req.body;
-    try{
-        let opinions = await Opinion.find();
-
-        if(opinions.length===0){
-            res.status(400).json({message: 'Brak opinii'});
-        }
-
-        res.status(200).json({opinions: opinions});
-    }
-    catch (error) {
-        console.log('Error:', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-})
-
-app.get('api/get/average', async (req, res) => {
-    const { itemId } = req.body;
-
+app.get('/api/get/opinions', async (req, res) => {
+    const { itemId } = req.query;
     try {
-        const average = await Opinion.aggregate([
-            { $match: { itemId: itemId } },
-            {
-                $group: {
-                    _id: null,
-                    averageRating: { $avg: '$rating' },
-                },
-            },
-        ]);
+        let opinions = await Opinion.find({ itemId });
 
-        if (average.length === 0) {
+        if (opinions.length === 0) {
             res.status(400).json({ message: 'Brak opinii' });
         } else {
-            res.status(200).json({ average: average[0].averageRating.toFixed(2) });
+            res.status(200).json({ opinions: opinions });
         }
     } catch (error) {
         console.log('Error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
+
+app.get('/api/get/average', async (req, res) => {
+    const { itemId } = req.query;
+    try {
+      const averageRating = await Opinion.aggregate([
+        { $match: { itemId } },
+        { $group: { _id: null, average: { $avg: '$rating' } } },
+      ]);
+  
+      if (averageRating.length === 0) {
+        return res.status(404).json({ error: 'No opinions found for the given itemId' });
+      } else {
+        res.status(200).json({ average: averageRating[0].average });
+      }
+    } catch (error) {
+      console.log('Error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
 
 
 app.listen(PORT, () => {
