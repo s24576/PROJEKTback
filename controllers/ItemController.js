@@ -37,12 +37,10 @@ const getItem = async (req, res) => {
 
 //DODAC POTWIERDZENIE ZE OPERACJE WYKONUJE ADMIN
 const addItem = async (req, res) => {
-  const { name, photo, price, description, quantity, shipping1, shipping2 } = req.body;
+  const { name, category, photo, price, description, quantity, shipping1, shipping2 } = req.body;
   try {
-      //timestampsy
-      const added = new Date();
       // ewentualna unikalność przedmiotów
-      const newItem = new Item({ name, photo, price, description, quantity, added, shipping1, shipping2 });
+      const newItem = new Item({ name, category, photo, price, description, quantity, shipping1, shipping2 });
 
       await newItem.save();
 
@@ -75,4 +73,60 @@ const deleteItem = async (req, res) => {
   }
 };
 
-module.exports = {getAllItems, getItem, addItem, deleteItem};
+const getAllCategories = async (req, res) => {
+  try {
+    const categories = await Item.distinct("category");
+    res.status(200).json({ categories: categories });
+  } catch (error) {
+    console.error("Error getting categories:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const sort = async (req, res) => {
+  try {
+    const { minPrice, maxPrice, category, orderBy, sortOrder } = req.query;
+
+    let query = {};
+
+    if (minPrice) {
+      query.price = { $gte: parseFloat(minPrice) };
+    }
+
+    if (maxPrice>0) {
+      query.price = { ...query.price, $lte: parseFloat(maxPrice) };
+    }
+
+    if (category) {
+      query.category = category;
+    }
+
+    let sortQuery = {};
+    let order = -1;
+    if(sortOrder==="asc"){
+      order = 1;
+    }
+
+    if(orderBy){
+      if(orderBy==="date"){
+        sortQuery = { createdAt: order };
+      }
+      else if(orderBy==="average"){
+        const items = await Item.find(query);
+        const itemsWithAverageRating = await Item.averageRating(items, order);
+        return res.status(200).json({ items: itemsWithAverageRating });
+      }
+      else if(orderBy==="price"){
+        sortQuery = { price: order };
+      }
+    }
+    const items = await Item.find(query).sort(sortQuery);
+
+    res.status(200).json({ items });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+module.exports = {getAllItems, getItem, addItem, deleteItem, getAllCategories, sort};
