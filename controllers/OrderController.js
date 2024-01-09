@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const Shipping = require('../models/Shipping');
+const Item = require('../models/Item');
 
 const addOrder = async (req, res) => {
     const {type, shipping, cart } = req.body;
@@ -38,6 +39,14 @@ const addOrder = async (req, res) => {
         });
 
         const savedOrder = await newOrder.save();
+
+        for(const item of cart){
+            const existingItem = await Item.findById(item.itemId);
+            
+            existingItem.quantity -= item.quantity;
+            await existingItem.save();
+        }
+
         return res.status(200).json({id: savedOrder._id});
     }
     catch (error) {
@@ -47,7 +56,26 @@ const addOrder = async (req, res) => {
 }
 
 const getOrder = async (req, res)=>{
+    const { orderId } = req.query;
 
+    try{
+        if(!orderId){
+            return res.status(400).json({ message: 'No ID given'});
+        }
+
+        const order = await Order.findById(orderId);
+        if(!order){
+            return res.status(400).json({ message: 'No order with given ID'});
+        }
+        
+        
+
+        res.status(200).json({order: order});
+
+    } catch (error) {
+        console.log('Error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 }
 
 module.exports = {addOrder, getOrder};
