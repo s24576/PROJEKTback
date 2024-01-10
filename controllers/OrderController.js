@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Shipping = require('../models/Shipping');
 const Item = require('../models/Item');
+const User = require('../models/User');
 
 const addOrder = async (req, res) => {
     const {type, shipping, cart } = req.body;
@@ -78,4 +79,39 @@ const getOrder = async (req, res)=>{
     }
 }
 
-module.exports = {addOrder, getOrder};
+const getUsersOrder = async (req, res)=>{
+    const { userId } = req.query;
+    
+    try{
+        const user = await User.findById(userId);
+        if(!user){
+            return res.status(400).json({message: 'No user with given ID'});
+        }
+
+        
+        Order.find({ 'items.itemId': { $exists: true } })
+            .populate({
+                path: 'shippingId',
+                match: { 'email': user.email },
+                model: 'Shipping'
+            })
+            .exec()
+            .then((orders)=>{
+                if (orders.length === 0) {
+                    return res.status(200).json({ message: 'No orders found for the user' });
+                  }
+
+                  res.status(200).json({ orders: orders });
+            })
+            .catch((error)=> {
+
+                console.log('Error:', error);
+                res.status(500).json({ message: 'Internal server error' });
+            });
+    } catch (error) {
+        console.log('Error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+module.exports = {addOrder, getOrder, getUsersOrder};
