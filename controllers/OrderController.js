@@ -69,9 +69,9 @@ const getOrder = async (req, res)=>{
             return res.status(400).json({ message: 'No order with given ID'});
         }
         
-        
+        const shipping = await Shipping.findById(order.shippingId);
 
-        res.status(200).json({order: order});
+        res.status(200).json({order: order, shipping: shipping});
 
     } catch (error) {
         console.log('Error:', error);
