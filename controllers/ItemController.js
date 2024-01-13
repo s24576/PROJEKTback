@@ -35,11 +35,17 @@ const getItem = async (req, res) => {
     }
 }
 
-//DODAC POTWIERDZENIE ZE OPERACJE WYKONUJE ADMIN
 const addItem = async (req, res) => {
   const { name, category, photo, price, description, quantity, shipping1, shipping2 } = req.body;
   try {
-      // ewentualna unikalność przedmiotów
+      if(!name || !category || !photo || !price || !description || !quantity){
+        return res.status(404).json({ message: 'Not enough information given' });
+      }
+
+      if(!shipping1 && !shipping2){
+        return res.status(404).json({ message: 'No shipping option' });
+      }
+
       const newItem = new Item({ name, category, photo, price, description, quantity, shipping1, shipping2 });
 
       await newItem.save();

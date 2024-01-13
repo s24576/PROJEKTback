@@ -1,13 +1,23 @@
 const Comment = require('../models/Comment');
 const Rating = require('../models/Rating');
+const Item = require('../models/Item');
 const mongoose = require('mongoose');
 
 const addComment = async(req, res)=>{
     const { itemId, author, comment} = req.body;
     try{
+        if(!itemId || !author || !comment){
+            return res.status(400).json({ message: 'Not enough information given' });
+        }
+        const item = Item.findById(itemId);
+        if(!item){
+            return res.status(400).json({ message: 'No item with given ID' });
+        }
+
         const newComment = new Comment({ itemId, author, comment});
         await newComment.save();
-        res.status(200).json({ message: "Komentarz zapisany pomyślnie"});
+        
+        res.status(200).json({ message: "Saved succesfully"});
     }
     catch (error) {
         console.log('Error:', error);
