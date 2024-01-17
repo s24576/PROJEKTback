@@ -114,4 +114,48 @@ const getUsersOrder = async (req, res)=>{
     }
 }
 
-module.exports = {addOrder, getOrder, getUsersOrder};
+const countShipping = () =>{
+    return new Promise(async (resolve, reject) => {
+        try {
+            const result = await Shipping.aggregate([
+                {
+                    $group: {
+                      _id: '$type',
+                      count: { $sum: 1 },
+                    },
+                  },
+                  {
+                    $project: {
+                      _id: 1,
+                      count: 1,
+                      name: {
+                        $cond: {
+                          if: { $eq: ['$_id', 'shipping2'] },
+                          then: 'kurier',
+                          else: 'paczkomat'
+                        },
+                      },
+                    },
+                  },
+                ]);
+      
+            resolve(result);
+          } catch (error) {
+            console.error('Error:', error);
+            reject({ message: 'Internal server error' });
+          }
+        });
+}
+const getAllShippings = async (req, res) => {
+    try {
+        const shippingData = await countShipping();
+        console.log(shippingData);
+        res.status(200).json({shippingData: shippingData});
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+
+module.exports = {addOrder, getOrder, getUsersOrder, getAllShippings};

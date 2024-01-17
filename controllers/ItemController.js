@@ -39,18 +39,22 @@ const addItem = async (req, res) => {
   const { name, category, photo, price, description, quantity, shipping1, shipping2 } = req.body;
   try {
       if(!name || !category || !photo || !price || !description || !quantity){
-        return res.status(404).json({ message: 'Not enough information given' });
+        return res.status(400).json({ message: 'Not enough information given' });
       }
 
       if(!shipping1 && !shipping2){
-        return res.status(404).json({ message: 'No shipping option' });
+        return res.status(400).json({ message: 'No shipping option' });
+      }
+
+      if(!shipping2){
+        return res.status(400).json({ message: 'Always must be true' });
       }
 
       const newItem = new Item({ name, category, photo, price, description, quantity, shipping1, shipping2 });
 
       await newItem.save();
 
-      res.status(200).json({ message: "Przedmiot zapisany pomyślnie", item: newItem });
+      res.status(200).json({ message: "Saved succesfully", item: newItem });
   } catch (error) {
       console.log('Error:', error);
       res.status(500).json({ message: 'Internal server error' });
@@ -86,6 +90,49 @@ const getAllCategories = async (req, res) => {
   } catch (error) {
     console.error("Error getting categories:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const editItem = async (req, res) => {
+  const { id } = req.body;
+  const { name, category, photo, price, description, quantity, shipping1, shipping2 } = req.body.item;
+  try {
+    const existingItem = await Item.findById(id);
+    if (!existingItem) {
+      return res.status(404).json({ message: 'No item with the given ID' });
+    }
+
+    if (!name || !category || !photo || !price || !description || !quantity) {
+      return res.status(400).json({ message: 'Not enough information given' });
+    }
+
+    if (!shipping1 && !shipping2) {
+      return res.status(400).json({ message: 'No shipping option selected' });
+    }
+
+    if (!shipping2) {
+      return res.status(400).json({ message: 'Shipping2 must always be true' });
+    }
+
+    const updatedItem = await Item.findByIdAndUpdate(
+      id,
+      {
+        name,
+        category,
+        photo,
+        price,
+        description,
+        quantity,
+        shipping1,
+        shipping2,
+      },
+      { new: true }
+    );
+
+    res.status(200).json({ item: updatedItem });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
@@ -135,4 +182,4 @@ const sort = async (req, res) => {
   }
 };
 
-module.exports = {getAllItems, getItem, addItem, deleteItem, getAllCategories, sort};
+module.exports = {getAllItems, getItem, addItem, deleteItem, editItem, getAllCategories, sort};
