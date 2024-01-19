@@ -8,6 +8,10 @@ const key = "TWRkrólpodziemia";
 const login = async (req, res) => {
     const { email, password } = req.body;
     try {
+        if(!email || !password){
+            return res.status(401).json({ message: 'No credentials given' });
+        }
+
         const user = await User.findOne({ email });
 
         if (!user) {
@@ -36,6 +40,10 @@ const login = async (req, res) => {
 const register = async (req, res) => {
     const { email, password } = req.body;
     try {
+        if(!email || !password){
+            return res.status(401).json({ message: 'No credentials given' });
+        }
+
         const existingUser = await User.findOne({ email });
 
         if (existingUser) {
@@ -56,6 +64,10 @@ const register = async (req, res) => {
 const info = async (req, res) => {
     const { token } = req.query;
     try {
+        if(!token){
+            return res.status(404).json({ message: 'No token given' });
+        }
+
         const decodedToken = jwt.verify(token, key);
     
         const user = await User.findById(decodedToken.user._id);

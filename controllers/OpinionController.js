@@ -9,6 +9,11 @@ const addComment = async(req, res)=>{
         if(!itemId || !author || !comment){
             return res.status(400).json({ message: 'Not enough information given' });
         }
+
+        if(comment.trim()==''){
+            return res.status(400).json({ message: 'No comment given' });
+        }
+
         const item = Item.findById(itemId);
         if(!item){
             return res.status(400).json({ message: 'No item with given ID' });
@@ -28,6 +33,17 @@ const addComment = async(req, res)=>{
 const addRating = async(req, res)=>{
     const { itemId, author, rating} = req.body;
     try{
+        if(!itemId || !author || !rating){
+            return res.status(400).json({ message: 'Not enough information given' });
+        }
+
+        const item = Item.findById(itemId);
+        if(!item){
+            return res.status(400).json({ message: 'No item with given ID' });
+        }
+        if(rating<1 || rating>5){
+            return res.status(400).json({ message: 'Rating out of bounds' });
+        }
         const newRating = new Rating({ itemId, author, rating});
         await newRating.save();
         res.status(200).json({ message: "Ocena zapisana pomyślnie"});

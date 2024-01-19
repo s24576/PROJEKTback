@@ -3,11 +3,36 @@ const Shipping = require('../models/Shipping');
 const Item = require('../models/Item');
 const User = require('../models/User');
 
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+    return emailRegex.test(email);
+}
+
 const addOrder = async (req, res) => {
     const {type, shipping, cart } = req.body;
     try{
         let newShipping;
+
+        if(!shipping.email || !isValidEmail(shipping.email)){
+            return res.status(404).json({error: "Faulty email"});
+        }
+
+        const telephoneRegex = /^[0-9]{9}$/;
+        if(!shipping.number || !telephoneRegex.test(shipping.number)){
+            return res.status(404).json({error: "Faulty number"});
+        }
+
         if(type==="shipping1"){
+            const paczkomatRegex = /^[A-Za-z]{3}\d{2}$/;
+            if(!paczkomatRegex.test(shipping.code)){
+                return res.status(404).json({error: "Faulty paczkomat code"});
+            }
+
+            if (!shipping.names || shipping.names.trim().length === 0) {
+                return res.status(404).json({ error: "No name given" });
+            }
+
             newShipping = new Shipping({
                 type: "shipping1",
                 names: shipping.names,
@@ -17,6 +42,27 @@ const addOrder = async (req, res) => {
             })
         }
         else if(type==="shipping2"){
+            if (!shipping.name || shipping.name.trim().length === 0) {
+                return res.status(404).json({ error: "No name given" });
+            }
+
+            if (!shipping.surname || shipping.surname.trim().length === 0) {
+                return res.status(404).json({ error: "No surname given" });
+            }
+
+            if (!shipping.address || shipping.address.trim().length === 0) {
+                return res.status(404).json({ error: "Faulty address given" });
+            }
+            
+            const postalcodeRegex = /^[0-9]{2}-[0-9]{3}$/;
+            if(!shipping.postalcode || !postalcodeRegex.test(shipping.postalcode)){
+                return res.status(404).json({ error: "Faulty postal code given" });
+            }
+
+            if (!shipping.city || shipping.city.trim().length === 0) {
+                return res.status(404).json({ error: "Faulty city given" });
+            }
+
             newShipping = new Shipping({
                 type: "shipping2",
                 name: shipping.name,
@@ -39,7 +85,19 @@ const addOrder = async (req, res) => {
             items: cart,
         });
 
-        const savedOrder = await newOrder.save();
+
+        for(const item of cart){
+            const existingItem = await Item.findById(item.itemId);
+
+            if(!existingItem){
+                return res.status(404).json({ error: "No item with given Id" });
+            }
+
+            if(existingItem.quantity<item.quantity){
+                return res.status(404).json({ error: "Not enough items in storage" });
+            }
+        }
+
 
         for(const item of cart){
             const existingItem = await Item.findById(item.itemId);
@@ -48,6 +106,7 @@ const addOrder = async (req, res) => {
             await existingItem.save();
         }
 
+        const savedOrder = await newOrder.save();
         return res.status(200).json({id: savedOrder._id});
     }
     catch (error) {
@@ -83,6 +142,11 @@ const getUsersOrder = async (req, res)=>{
     const { userId } = req.query;
     
     try{
+
+        if(!userId){
+            return res.status(400).json({message: 'No ID given'});
+        }
+        
         const user = await User.findById(userId);
         if(!user){
             return res.status(400).json({message: 'No user with given ID'});
