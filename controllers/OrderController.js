@@ -2,6 +2,7 @@ const Order = require('../models/Order');
 const Shipping = require('../models/Shipping');
 const Item = require('../models/Item');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
 function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -21,6 +22,22 @@ const addOrder = async (req, res) => {
         const telephoneRegex = /^[0-9]{9}$/;
         if(!shipping.number || !telephoneRegex.test(shipping.number)){
             return res.status(404).json({error: "Faulty number"});
+        }
+
+        for(const item of cart){
+            if(!mongoose.Types.ObjectId.isValid(item.itemId)){
+                return res.status(400).json({message: 'Faulty ID given'});
+            }
+
+            const existingItem = await Item.findById(item.itemId);
+            
+            if(!existingItem){
+                return res.status(404).json({ error: "No item with given Id" });
+            }
+
+            if(existingItem.quantity<item.quantity){
+                return res.status(404).json({ error: "Not enough items in storage" });
+            }
         }
 
         if(type==="shipping1"){
@@ -75,7 +92,7 @@ const addOrder = async (req, res) => {
             });
         }
         else{
-            return res.status(404).json({error: "Zła forma dostawy"});
+            return res.status(404).json({error: "Wrong shpping type"});
         }
 
         const savedShipping = await newShipping.save();
@@ -84,19 +101,6 @@ const addOrder = async (req, res) => {
             shippingId: savedShipping._id,
             items: cart,
         });
-
-
-        for(const item of cart){
-            const existingItem = await Item.findById(item.itemId);
-
-            if(!existingItem){
-                return res.status(404).json({ error: "No item with given Id" });
-            }
-
-            if(existingItem.quantity<item.quantity){
-                return res.status(404).json({ error: "Not enough items in storage" });
-            }
-        }
 
 
         for(const item of cart){
@@ -122,6 +126,10 @@ const getOrder = async (req, res)=>{
         if(!orderId){
             return res.status(400).json({ message: 'No ID given'});
         }
+        
+        if(!mongoose.Types.ObjectId.isValid(orderId)){
+            return res.status(400).json({message: 'Faulty ID given'});
+        }
 
         const order = await Order.findById(orderId);
         if(!order){
@@ -142,11 +150,14 @@ const getUsersOrder = async (req, res)=>{
     const { userId } = req.query;
     
     try{
-
         if(!userId){
             return res.status(400).json({message: 'No ID given'});
         }
         
+        if(!mongoose.Types.ObjectId.isValid(userId)){
+            return res.status(400).json({message: 'Faulty ID given'});
+        }
+
         const user = await User.findById(userId);
         if(!user){
             return res.status(400).json({message: 'No user with given ID'});

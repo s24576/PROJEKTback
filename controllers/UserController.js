@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const mongoose = require('mongoose');
+
 const jwt = require("jsonwebtoken");
 const bcrypt = require('bcrypt');
 
@@ -42,6 +44,10 @@ const register = async (req, res) => {
     try {
         if(!email || !password){
             return res.status(401).json({ message: 'No credentials given' });
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if(!emailRegex.test(email)){
+            return res.status(400).json({ message: 'Given email is not email' });
         }
 
         const existingUser = await User.findOne({ email });
